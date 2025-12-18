@@ -184,9 +184,7 @@ class MonthlySplit(BaseCrossValidator):
             times = times.to_series()
 
         times = pd.to_datetime(times)
-
-        months = times.dt.to_period("M").unique()
-        months = months.sort_values()  
+        months = pd.Index(times.dt.to_period("M").unique()).sort_values()
 
         return max(0, len(months) - 1)
 
@@ -217,15 +215,18 @@ class MonthlySplit(BaseCrossValidator):
         else:
             times = X[self.time_col]
 
+        if isinstance(times, pd.DatetimeIndex):
+            times = times.to_series()
+
         times = pd.to_datetime(times)
-        months = times.dt.to_period("M").unique().sort_values()
+        months = pd.Index(times.dt.to_period("M").unique()).sort_values()
 
         for i in range(n_splits):
             train_month = months[i]
             test_month = months[i + 1]
 
-            mask_train = times.dt.to_period("M") == train_month
-            mask_test = times.dt.to_period("M") == test_month
+            mask_train = (times.dt.to_period("M") == train_month)
+            mask_test = (times.dt.to_period("M") == test_month)
 
             idx_train = np.where(mask_train)[0]
             idx_test = np.where(mask_test)[0]
