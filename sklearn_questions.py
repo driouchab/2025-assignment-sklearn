@@ -111,7 +111,7 @@ class KNearestNeighbors(ClassifierMixin, BaseEstimator):
         knn_indices = np.argsort(distances, axis=1)[:, :self.n_neighbors]
         knn_labels = self.y_[knn_indices]
 
-        y_pred = np.zeros(X.shape[0])
+        y_pred = np.empty(X.shape[0], dtype=self.classes_.dtype)
         for i in range(X.shape[0]):
             unique_labels, counts = np.unique(
                 knn_labels[i], return_counts=True
