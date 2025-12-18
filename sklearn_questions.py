@@ -117,7 +117,7 @@ class KNearestNeighbors(ClassifierMixin, BaseEstimator):
                 knn_labels[i], return_counts=True
             )
             y_pred[i] = unique_labels[np.argmax(counts)]
-        
+
         return y_pred
 
     def score(self, X, y):
@@ -180,9 +180,13 @@ class MonthlySplit(BaseCrossValidator):
             times = X.index
         else:
             times = X[self.time_col]
+        if isinstance(times, pd.DatetimeIndex):
+            times = times.to_series()
 
         times = pd.to_datetime(times)
-        months = times.dt.to_period("M").unique().sort_values()
+
+        months = times.dt.to_period("M").unique()
+        months = months.sort_values()  
 
         return max(0, len(months) - 1)
 
@@ -206,7 +210,6 @@ class MonthlySplit(BaseCrossValidator):
         idx_test : ndarray
             The testing set indices for that split.
         """
-        n_samples = X.shape[0]
         n_splits = self.get_n_splits(X, y, groups)
 
         if self.time_col == 'index':
