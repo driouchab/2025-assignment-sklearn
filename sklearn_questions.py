@@ -84,6 +84,10 @@ class KNearestNeighbors(ClassifierMixin, BaseEstimator):
         """
         X, y = validate_data(self, X, y)
 
+        # check_classification_targets.
+        if y.dtype.kind == 'f' and np.any(y != y.astype(int)):
+            raise ValueError("Unknown label type: continuous")
+
         self.classes_ = np.unique(y)
         self.X_ = X
         self.y_ = y
@@ -106,12 +110,11 @@ class KNearestNeighbors(ClassifierMixin, BaseEstimator):
         check_is_fitted(self)
         X = validate_data(self, X, reset=False)
 
-        # Compute  distances
         distances = pairwise_distances(X, self.X_, metric='euclidean')
         knn_indices = np.argsort(distances, axis=1)[:, :self.n_neighbors]
         knn_labels = self.y_[knn_indices]
-
         y_pred = np.empty(X.shape[0], dtype=self.classes_.dtype)
+
         for i in range(X.shape[0]):
             unique_labels, counts = np.unique(
                 knn_labels[i], return_counts=True
@@ -179,15 +182,15 @@ class MonthlySplit(BaseCrossValidator):
         if self.time_col == 'index':
             times = X.index
         else:
-            if self.time_col not in X.columns:
-                raise ValueError(f"{self.time_col} not in X")
             times = X[self.time_col]
-
         if not pd.api.types.is_datetime64_any_dtype(times):
-            raise ValueError("The column is not a datetime.")
+            raise ValueError("Column must be datetime.")
 
         times = pd.to_datetime(times)
-        months = pd.Index(times.dt.to_period("M").unique()).sort_values()
+        if hasattr(times, 'dt'):
+            months = pd.Index(times.dt.to_period("M").unique())
+        else:
+            months = pd.Index(times.to_period("M").unique())
 
         return max(0, len(months) - 1)
 
@@ -215,14 +218,18 @@ class MonthlySplit(BaseCrossValidator):
             times = X.index
         else:
             times = X[self.time_col]
-        if not pd.api.types.is_datetime64_any_dtype(times):
-            raise ValueError("The column is not a datetime.")
 
-        if isinstance(times, pd.DatetimeIndex):
-            times = times.to_series()
+        if not pd.api.types.is_datetime64_any_dtype(times):
+            raise ValueError("Column must be datetime.")
 
         times = pd.to_datetime(times)
-        months = pd.Index(times.dt.to_period("M").unique()).sort_values()
+
+        if hasattr(times, 'dt'):
+            periods = times.dt.to_period("M")
+        else:
+            periods = times.to_period("M")
+
+        months = pd.Index(periods.unique()).sort_values()
         n_splits = self.get_n_splits(X, y, groups)
 
         for i in range(n_splits):
