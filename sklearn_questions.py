@@ -85,8 +85,8 @@ class KNearestNeighbors(ClassifierMixin, BaseEstimator):
         X, y = validate_data(self, X, y)
 
         self.classes_ = np.unique(y)
-        self.X_train_ = X
-        self.y_train_ = y
+        self.X_ = X
+        self.y_ = y
 
         return self
 
