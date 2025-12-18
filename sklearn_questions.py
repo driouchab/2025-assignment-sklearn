@@ -185,12 +185,13 @@ class MonthlySplit(BaseCrossValidator):
             times = X[self.time_col]
         if not pd.api.types.is_datetime64_any_dtype(times):
             raise ValueError("Column must be datetime.")
-
         times = pd.to_datetime(times)
-        if hasattr(times, 'dt'):
-            months = pd.Index(times.dt.to_period("M").unique())
+        if isinstance(times, pd.Index):
+            periods = times.to_period("M")
         else:
-            months = pd.Index(times.to_period("M").unique())
+            periods = times.dt.to_period("M")
+
+        months = pd.Index(periods.unique()).sort_values()
 
         return max(0, len(months) - 1)
 
@@ -224,20 +225,20 @@ class MonthlySplit(BaseCrossValidator):
 
         times = pd.to_datetime(times)
 
-        if hasattr(times, 'dt'):
-            periods = times.dt.to_period("M")
-        else:
+        if isinstance(times, pd.Index):
             periods = times.to_period("M")
+        else:
+            periods = times.dt.to_period("M")
 
         months = pd.Index(periods.unique()).sort_values()
-        n_splits = self.get_n_splits(X, y, groups)
+        n_splits = max(0, len(months) - 1)
 
         for i in range(n_splits):
             train_month = months[i]
             test_month = months[i + 1]
 
-            mask_train = (times.dt.to_period("M") == train_month)
-            mask_test = (times.dt.to_period("M") == test_month)
+            mask_train = (periods == train_month)
+            mask_test = (periods == test_month)
 
             idx_train = np.where(mask_train)[0]
             idx_test = np.where(mask_test)[0]
